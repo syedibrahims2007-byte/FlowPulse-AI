@@ -16,12 +16,21 @@ from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 
 # ==========================================
-# 1. CONFIGURATION & SERVICES INITIALIZATION
+# 1. HELPER FUNCTIONS & AUTH CONTEXT
 # ==========================================
 
-# Initialize Gemini Client with environment variable
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
-gemini_client = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else genai.Client()
+def get_gemini_client() -> genai.Client:
+    """
+    Instantiates an isolated Gemini client bound exclusively to the backend API key.
+    This prevents the SDK from capturing user OAuth tokens from the request context.
+    """
+    api_key = os.environ.get("GEMINI_API_KEY")
+    if not api_key:
+        raise HTTPException(
+            status_code=500, 
+            detail="GEMINI_API_KEY environment variable is not configured on the server."
+        )
+    return genai.Client(api_key=api_key)
 
 def build_user_tasks_service(authorization: Optional[str]):
     """
@@ -119,7 +128,6 @@ class ArtifactRequest(BaseModel):
     task_title: str
     artifact_type: str  # 'email', 'code', or 'doc'
 
-# Serve Dashboard UI
 @app.get("/")
 def read_root():
     return FileResponse("index.html")
@@ -135,6 +143,7 @@ async def decompose_goal(
 ):
     try:
         service = build_user_tasks_service(authorization)
+        ai_client = get_gemini_client()
 
         prompt = f"""
         You are an AI project manager. Break down the following high-level goal into 4 to 6 specific, actionable sub-tasks.
@@ -146,7 +155,7 @@ async def decompose_goal(
         - "notes": Brief execution step or detail
         """
 
-        response = gemini_client.models.generate_content(
+        response = ai_client.models.generate_content(
             model='gemini-2.5-flash',
             contents=prompt,
             config=types.GenerateContentConfig(
@@ -189,6 +198,8 @@ async def decompose_goal_image(
 ):
     try:
         service = build_user_tasks_service(authorization)
+        ai_client = get_gemini_client()
+
         image_bytes = await file.read()
         mime_type = file.content_type if file.content_type else "image/jpeg"
 
@@ -212,7 +223,7 @@ async def decompose_goal_image(
         }
         """
 
-        response = gemini_client.models.generate_content(
+        response = ai_client.models.generate_content(
             model='gemini-2.5-flash',
             contents=[
                 types.Part.from_bytes(
@@ -262,6 +273,8 @@ async def decompose_goal_audio(
 ):
     try:
         service = build_user_tasks_service(authorization)
+        ai_client = get_gemini_client()
+
         audio_bytes = await file.read()
         mime_type = file.content_type if file.content_type else "audio/mp3"
 
@@ -285,7 +298,7 @@ async def decompose_goal_audio(
         }
         """
 
-        response = gemini_client.models.generate_content(
+        response = ai_client.models.generate_content(
             model='gemini-2.5-flash',
             contents=[
                 types.Part.from_bytes(
@@ -330,6 +343,7 @@ async def decompose_goal_audio(
 @app.post("/generate-task-guide")
 async def generate_task_guide(payload: TaskGuideRequest):
     try:
+        ai_client = get_gemini_client()
         prompt = f"""
         You are an expert execution coach. Provide a concise, highly practical step-by-step guide on how to complete this specific task:
 
@@ -339,7 +353,7 @@ async def generate_task_guide(payload: TaskGuideRequest):
         Structure your response clearly using bullet points, key tools/links to use, and any exact code/text templates if applicable. Keep it actionable and under 250 words.
         """
 
-        response = gemini_client.models.generate_content(
+        response = ai_client.models.generate_content(
             model='gemini-2.5-flash',
             contents=prompt
         )
@@ -355,6 +369,7 @@ async def generate_task_guide(payload: TaskGuideRequest):
 @app.post("/generate-artifact")
 async def generate_artifact(payload: ArtifactRequest):
     try:
+        ai_client = get_gemini_client()
         if payload.artifact_type == "email":
             prompt = f"Write a professional, ready-to-send email draft to complete or delegate this task: '{payload.task_title}'. Include Subject line and Placeholders in [brackets]."
         elif payload.artifact_type == "code":
@@ -362,7 +377,7 @@ async def generate_artifact(payload: ArtifactRequest):
         else:
             prompt = f"Create a comprehensive document outline, brief, or specification for this task: '{payload.task_title}'. Use bullet points and clear sections."
 
-        response = gemini_client.models.generate_content(
+        response = ai_client.models.generate_content(
             model='gemini-2.5-flash',
             contents=prompt
         )
