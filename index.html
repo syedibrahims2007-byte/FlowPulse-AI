@@ -4,10 +4,10 @@
   <meta charset="UTF-8">
   <title>FlowPulse AI Dashboard</title>
   
-  <!-- Load Google Identity Services SDK -->
+  <!-- Google Identity Services SDK -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   
-  <!-- Load Mermaid.js for visual graph rendering -->
+  <!-- Mermaid.js for visual rendering -->
   <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
   <script>mermaid.initialize({ startOnLoad: false, theme: 'neutral' });</script>
   
@@ -250,7 +250,7 @@
       </div>
     </div>
 
-    <!-- Google OAuth Authentication Banner -->
+    <!-- Google OAuth Banner -->
     <div class="auth-banner">
       <div id="auth-status-text">
         🔒 <strong>Google Tasks Unlinked</strong>
@@ -292,20 +292,18 @@
     <div id="mermaid-container"></div>
   </div>
 
-  <!-- AI Task Execution Assistant Side-Drawer -->
+  <!-- Side-Drawer Assistant -->
   <div id="drawer" class="drawer">
     <button type="button" class="close-btn" onclick="closeDrawer()">✕ Close</button>
     <h3 id="drawer-title" style="margin-top: 10px; color: #0066ff;">Task Execution Assistant</h3>
     <hr style="border: 0; border-top: 1px solid #e2e8f0; margin-bottom: 15px;">
 
-    <!-- Quick Action Artifact Buttons -->
     <div style="display: flex; gap: 8px; margin-bottom: 15px;">
       <button type="button" class="exec-btn" style="background:#2563eb; flex:1;" onclick="generateArtifact('email')">📧 Draft Email</button>
       <button type="button" class="exec-btn" style="background:#0d9488; flex:1;" onclick="generateArtifact('code')">💻 Generate Code</button>
       <button type="button" class="exec-btn" style="background:#9333ea; flex:1;" onclick="generateArtifact('doc')">📄 Doc Outline</button>
     </div>
 
-    <!-- Artifact Output Area with Copy Button -->
     <div id="artifact-box" style="display:none; background:#0f172a; color:#f8fafc; padding:12px; border-radius:8px; font-size:13px; margin-bottom:15px; position:relative;">
       <button type="button" onclick="copyArtifact()" style="position:absolute; top:8px; right:8px; background:#334155; color:white; border:none; padding:4px 8px; border-radius:4px; font-size:11px; cursor:pointer;">📋 Copy</button>
       <pre id="artifact-content" style="white-space:pre-wrap; margin:0; font-family:monospace; font-size:12px; margin-top:15px;"></pre>
@@ -320,7 +318,6 @@
     let tokenClient = null;
     let currentTaskTitle = "";
 
-    // Initialize Google OAuth Token Client
     window.onload = function() {
       if (window.google) {
         tokenClient = google.accounts.oauth2.initTokenClient({
@@ -346,16 +343,13 @@
       }
     }
 
-    // Trigger proactive nudge check endpoint using relative URL
     async function checkNudges() {
       if (!userAccessToken) return alert("Please connect your Google Tasks account first!");
 
       try {
         const res = await fetch("/trigger-nudge-check", {
           method: "POST",
-          headers: {
-            "Authorization": `Bearer ${userAccessToken}`
-          }
+          headers: { "Authorization": `Bearer ${userAccessToken}` }
         });
         const data = await res.json();
         alert(`Nudge check complete! Found ${data.overdue_count} overdue task(s).`);
@@ -364,18 +358,14 @@
       }
     }
 
-    // Tab Switcher logic
     function switchTab(tabId, evt) {
       document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
       document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
       
-      if (evt && evt.target) {
-        evt.target.classList.add('active');
-      }
+      if (evt && evt.target) evt.target.classList.add('active');
       document.getElementById(tabId).classList.add('active');
     }
 
-    // Image Preview Handler
     function previewImage(event) {
       const file = event.target.files[0];
       const preview = document.getElementById('image-preview');
@@ -385,7 +375,6 @@
       }
     }
 
-    // Audio Recorder State Variables
     let mediaRecorder;
     let audioChunks = [];
     let recordedAudioBlob = null;
@@ -423,7 +412,6 @@
       }
     }
 
-    // 1. Process Image Request (relative URL)
     async function uploadImageAndSync() {
       if (!userAccessToken) return alert("Please connect your Google Tasks account before submitting!");
       const fileInput = document.getElementById('imageInput');
@@ -435,7 +423,6 @@
       await processApiCall("/decompose-goal-image", formData, "imageSyncBtn", "Analyzing image with Gemini...");
     }
 
-    // 2. Process Audio Request using relative URL
     async function uploadAudioAndSync() {
       if (!userAccessToken) return alert("Please connect your Google Tasks account before submitting!");
       const audioFileInput = document.getElementById('audioFileInput');
@@ -452,7 +439,6 @@
       await processApiCall("/decompose-goal-audio", formData, "audioSyncBtn", "Listening & synthesizing audio with Gemini...");
     }
 
-    // Common Processing and Rendering Handler
     async function processApiCall(url, formData, btnId, loadingText) {
       const btn = document.getElementById(btnId);
       const output = document.getElementById('output');
@@ -467,9 +453,7 @@
       try {
         const response = await fetch(url, { 
           method: "POST", 
-          headers: {
-            "Authorization": `Bearer ${userAccessToken}`
-          },
+          headers: { "Authorization": `Bearer ${userAccessToken}` },
           body: formData 
         });
         const data = await response.json();
@@ -512,7 +496,6 @@
       }
     }
 
-    // 3. Side Drawer AI Execution Guide Request (relative URL)
     async function openExecutionGuide(encodedTitle) {
       currentTaskTitle = unescape(encodedTitle);
       const drawer = document.getElementById('drawer');
@@ -542,7 +525,6 @@
       }
     }
 
-    // 4. Generate Artifact Request (relative URL)
     async function generateArtifact(type) {
       const artifactBox = document.getElementById('artifact-box');
       const artifactContent = document.getElementById('artifact-content');
