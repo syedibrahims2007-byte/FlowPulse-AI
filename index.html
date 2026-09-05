@@ -263,21 +263,21 @@
 
     <!-- Interface Mode Tabs -->
     <div class="tab-container">
-      <button class="tab-btn active" onclick="switchTab('image-tab')">📷 Image Strategy</button>
-      <button class="tab-btn" onclick="switchTab('audio-tab')">🎙️ Voice Memo Synthesizer</button>
+      <button class="tab-btn active" onclick="switchTab('image-tab', event)">📷 Image Strategy</button>
+      <button class="tab-btn" onclick="switchTab('audio-tab', event)">🎙️ Voice Memo Synthesizer</button>
     </div>
 
     <!-- IMAGE UPLOAD TAB -->
     <div id="image-tab" class="tab-content active">
       <input type="file" id="imageInput" accept="image/*" onchange="previewImage(event)">
       <img id="image-preview" alt="Goal Image Preview">
-      <button id="imageSyncBtn" class="primary-btn" onclick="uploadImageAndSync()">Extract & Sync Tasks from Image</button>
+      <button id="imageSyncBtn" type="button" class="primary-btn" onclick="uploadImageAndSync()">Extract & Sync Tasks from Image</button>
     </div>
 
     <!-- AUDIO RECORD / UPLOAD TAB -->
     <div id="audio-tab" class="tab-content">
       <div class="recorder-box">
-        <button id="recordBtn" class="rec-btn" onclick="toggleRecording()">🎙️ Start Recording</button>
+        <button id="recordBtn" type="button" class="rec-btn" onclick="toggleRecording()">🎙️ Start Recording</button>
         <p id="rec-status" style="font-size: 12px; color: #64748b; margin-top: 8px;">Click to record a goal voice memo</p>
         <audio id="audioPlayback" controls style="display:none;"></audio>
       </div>
@@ -285,7 +285,7 @@
       <div style="text-align: center; margin: 10px 0; color: #94a3b8; font-size: 12px;">— OR UPLOAD AN AUDIO FILE —</div>
       <input type="file" id="audioFileInput" accept="audio/*">
 
-      <button id="audioSyncBtn" class="primary-btn" onclick="uploadAudioAndSync()">Synthesize Voice Memo & Sync Tasks</button>
+      <button id="audioSyncBtn" type="button" class="primary-btn" onclick="uploadAudioAndSync()">Synthesize Voice Memo & Sync Tasks</button>
     </div>
 
     <div id="output"></div>
@@ -294,20 +294,20 @@
 
   <!-- AI Task Execution Assistant Side-Drawer -->
   <div id="drawer" class="drawer">
-    <button class="close-btn" onclick="closeDrawer()">✕ Close</button>
+    <button type="button" class="close-btn" onclick="closeDrawer()">✕ Close</button>
     <h3 id="drawer-title" style="margin-top: 10px; color: #0066ff;">Task Execution Assistant</h3>
     <hr style="border: 0; border-top: 1px solid #e2e8f0; margin-bottom: 15px;">
 
     <!-- Quick Action Artifact Buttons -->
     <div style="display: flex; gap: 8px; margin-bottom: 15px;">
-      <button class="exec-btn" style="background:#2563eb; flex:1;" onclick="generateArtifact('email')">📧 Draft Email</button>
-      <button class="exec-btn" style="background:#0d9488; flex:1;" onclick="generateArtifact('code')">💻 Generate Code</button>
-      <button class="exec-btn" style="background:#9333ea; flex:1;" onclick="generateArtifact('doc')">📄 Doc Outline</button>
+      <button type="button" class="exec-btn" style="background:#2563eb; flex:1;" onclick="generateArtifact('email')">📧 Draft Email</button>
+      <button type="button" class="exec-btn" style="background:#0d9488; flex:1;" onclick="generateArtifact('code')">💻 Generate Code</button>
+      <button type="button" class="exec-btn" style="background:#9333ea; flex:1;" onclick="generateArtifact('doc')">📄 Doc Outline</button>
     </div>
 
     <!-- Artifact Output Area with Copy Button -->
     <div id="artifact-box" style="display:none; background:#0f172a; color:#f8fafc; padding:12px; border-radius:8px; font-size:13px; margin-bottom:15px; position:relative;">
-      <button onclick="copyArtifact()" style="position:absolute; top:8px; right:8px; background:#334155; color:white; border:none; padding:4px 8px; border-radius:4px; font-size:11px; cursor:pointer;">📋 Copy</button>
+      <button type="button" onclick="copyArtifact()" style="position:absolute; top:8px; right:8px; background:#334155; color:white; border:none; padding:4px 8px; border-radius:4px; font-size:11px; cursor:pointer;">📋 Copy</button>
       <pre id="artifact-content" style="white-space:pre-wrap; margin:0; font-family:monospace; font-size:12px; margin-top:15px;"></pre>
     </div>
 
@@ -346,12 +346,12 @@
       }
     }
 
-    // Trigger proactive nudge check endpoint
+    // Trigger proactive nudge check endpoint using relative URL
     async function checkNudges() {
       if (!userAccessToken) return alert("Please connect your Google Tasks account first!");
 
       try {
-        const res = await fetch("http://localhost:8000/trigger-nudge-check", {
+        const res = await fetch("/trigger-nudge-check", {
           method: "POST",
           headers: {
             "Authorization": `Bearer ${userAccessToken}`
@@ -365,11 +365,13 @@
     }
 
     // Tab Switcher logic
-    function switchTab(tabId) {
+    function switchTab(tabId, evt) {
       document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
       document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
       
-      event.target.classList.add('active');
+      if (evt && evt.target) {
+        evt.target.classList.add('active');
+      }
       document.getElementById(tabId).classList.add('active');
     }
 
@@ -421,7 +423,7 @@
       }
     }
 
-    // 1. Process Image Request
+    // 1. Process Image Request (relative URL)
     async function uploadImageAndSync() {
       if (!userAccessToken) return alert("Please connect your Google Tasks account before submitting!");
       const fileInput = document.getElementById('imageInput');
@@ -430,10 +432,10 @@
       const formData = new FormData();
       formData.append("file", fileInput.files[0]);
 
-      await processApiCall("http://localhost:8000/decompose-goal-image", formData, "imageSyncBtn", "Analyzing image with Gemini...");
+      await processApiCall("/decompose-goal-image", formData, "imageSyncBtn", "Analyzing image with Gemini...");
     }
 
-    // 2. Process Audio Request (Recorded or Uploaded File)
+    // 2. Process Audio Request using relative URL
     async function uploadAudioAndSync() {
       if (!userAccessToken) return alert("Please connect your Google Tasks account before submitting!");
       const audioFileInput = document.getElementById('audioFileInput');
@@ -447,7 +449,7 @@
         return alert("Please record a voice memo or upload an audio file first!");
       }
 
-      await processApiCall("http://localhost:8000/decompose-goal-audio", formData, "audioSyncBtn", "Listening & synthesizing audio with Gemini...");
+      await processApiCall("/decompose-goal-audio", formData, "audioSyncBtn", "Listening & synthesizing audio with Gemini...");
     }
 
     // Common Processing and Rendering Handler
@@ -475,7 +477,7 @@
         if (response.ok) {
           renderTasksAndGraph(data);
         } else {
-          output.innerHTML = `<span style="color:red">❌ Error: ${data.detail}</span>`;
+          output.innerHTML = `<span style="color:red">❌ Error: ${data.detail || 'Failed to process'}</span>`;
         }
       } catch (err) {
         output.innerHTML = `<span style="color:red">❌ Failed to reach backend: ${err.message}</span>`;
@@ -493,12 +495,14 @@
       html += `<p style="color:#10b981; margin: 4px 0;">✅ Created ${data.tasks_created_count} tasks in Google Tasks:</p>`;
       html += `<ul class="task-list">`;
       
-      data.created_tasks.forEach(t => {
-        html += `<li>
-          <span>${t.title}</span>
-          <button class="exec-btn" onclick="openExecutionGuide('${escape(t.title)}')">⚡ How to Exec</button>
-        </li>`;
-      });
+      if (data.created_tasks && data.created_tasks.length > 0) {
+        data.created_tasks.forEach(t => {
+          html += `<li>
+            <span>${t.title}</span>
+            <button type="button" class="exec-btn" onclick="openExecutionGuide('${escape(t.title)}')">⚡ How to Exec</button>
+          </li>`;
+        });
+      }
       html += "</ul>";
       output.innerHTML = html;
 
@@ -508,7 +512,7 @@
       }
     }
 
-    // 3. Side Drawer AI Execution Guide Request
+    // 3. Side Drawer AI Execution Guide Request (relative URL)
     async function openExecutionGuide(encodedTitle) {
       currentTaskTitle = unescape(encodedTitle);
       const drawer = document.getElementById('drawer');
@@ -519,10 +523,10 @@
       drawer.classList.add('open');
       titleEl.innerText = currentTaskTitle;
       contentEl.innerHTML = "<em>Asking Gemini for step-by-step execution coaching...</em>";
-      artifactBox.style.display = "none"; // Hide artifact box on new task open
+      artifactBox.style.display = "none";
 
       try {
-        const res = await fetch("http://localhost:8000/generate-task-guide", {
+        const res = await fetch("/generate-task-guide", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ task_title: currentTaskTitle })
@@ -538,7 +542,7 @@
       }
     }
 
-    // 4. Generate Artifact Request (Email, Code, Doc)
+    // 4. Generate Artifact Request (relative URL)
     async function generateArtifact(type) {
       const artifactBox = document.getElementById('artifact-box');
       const artifactContent = document.getElementById('artifact-content');
@@ -547,7 +551,7 @@
       artifactContent.innerText = `Generating ${type} draft with Gemini...`;
 
       try {
-        const res = await fetch("http://localhost:8000/generate-artifact", {
+        const res = await fetch("/generate-artifact", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ task_title: currentTaskTitle, artifact_type: type })
