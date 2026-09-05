@@ -19,8 +19,9 @@ from googleapiclient.discovery import build
 # 1. CONFIGURATION & SERVICES INITIALIZATION
 # ==========================================
 
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY","AQ.Ab8RN6IMGg-eWjgY7n77bOPOEFLkdrGipG5t6yh8AL6oNhxuNQ")
-gemini_client = genai.Client(api_key=GEMINI_API_KEY)
+# Initialize Gemini Client with environment variable
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+gemini_client = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else genai.Client()
 
 def build_user_tasks_service(authorization: Optional[str]):
     """
@@ -118,7 +119,7 @@ class ArtifactRequest(BaseModel):
     task_title: str
     artifact_type: str  # 'email', 'code', or 'doc'
 
-# Serve the Dashboard UI directly at http://localhost:8000
+# Serve Dashboard UI
 @app.get("/")
 def read_root():
     return FileResponse("index.html")
@@ -146,7 +147,7 @@ async def decompose_goal(
         """
 
         response = gemini_client.models.generate_content(
-            model='gemini-3.6-flash',
+            model='gemini-2.5-flash',
             contents=prompt,
             config=types.GenerateContentConfig(
                 response_mime_type="application/json"
@@ -189,6 +190,7 @@ async def decompose_goal_image(
     try:
         service = build_user_tasks_service(authorization)
         image_bytes = await file.read()
+        mime_type = file.content_type if file.content_type else "image/jpeg"
 
         prompt = """
         You are an elite project manager and visual strategist. 
@@ -211,11 +213,11 @@ async def decompose_goal_image(
         """
 
         response = gemini_client.models.generate_content(
-            model='gemini-3.6-flash',
+            model='gemini-2.5-flash',
             contents=[
                 types.Part.from_bytes(
                     data=image_bytes,
-                    mime_type=file.content_type
+                    mime_type=mime_type
                 ),
                 prompt
             ],
@@ -261,6 +263,7 @@ async def decompose_goal_audio(
     try:
         service = build_user_tasks_service(authorization)
         audio_bytes = await file.read()
+        mime_type = file.content_type if file.content_type else "audio/mp3"
 
         prompt = """
         You are an elite AI assistant capable of processing spoken voice memos and audio recordings.
@@ -287,7 +290,7 @@ async def decompose_goal_audio(
             contents=[
                 types.Part.from_bytes(
                     data=audio_bytes,
-                    mime_type=file.content_type
+                    mime_type=mime_type
                 ),
                 prompt
             ],
@@ -337,7 +340,7 @@ async def generate_task_guide(payload: TaskGuideRequest):
         """
 
         response = gemini_client.models.generate_content(
-            model='gemini-3.6-flash',
+            model='gemini-2.5-flash',
             contents=prompt
         )
 
@@ -360,7 +363,7 @@ async def generate_artifact(payload: ArtifactRequest):
             prompt = f"Create a comprehensive document outline, brief, or specification for this task: '{payload.task_title}'. Use bullet points and clear sections."
 
         response = gemini_client.models.generate_content(
-            model='gemini-3.6-flash',
+            model='gemini-2.5-flash',
             contents=prompt
         )
 
