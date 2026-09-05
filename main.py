@@ -146,7 +146,7 @@ async def decompose_goal(
         """
 
         response = gemini_client.models.generate_content(
-            model='gemini-2.5-flash',
+            model='gemini-3.6-flash',
             contents=prompt,
             config=types.GenerateContentConfig(
                 response_mime_type="application/json"
@@ -211,7 +211,7 @@ async def decompose_goal_image(
         """
 
         response = gemini_client.models.generate_content(
-            model='gemini-2.5-flash',
+            model='gemini-3.6-flash',
             contents=[
                 types.Part.from_bytes(
                     data=image_bytes,
@@ -283,7 +283,7 @@ async def decompose_goal_audio(
         """
 
         response = gemini_client.models.generate_content(
-            model='gemini-2.5-flash',
+            model='gemini-3.6-flash',
             contents=[
                 types.Part.from_bytes(
                     data=audio_bytes,
@@ -337,7 +337,7 @@ async def generate_task_guide(payload: TaskGuideRequest):
         """
 
         response = gemini_client.models.generate_content(
-            model='gemini-2.5-flash',
+            model='gemini-3.6-flash',
             contents=prompt
         )
 
@@ -360,7 +360,7 @@ async def generate_artifact(payload: ArtifactRequest):
             prompt = f"Create a comprehensive document outline, brief, or specification for this task: '{payload.task_title}'. Use bullet points and clear sections."
 
         response = gemini_client.models.generate_content(
-            model='gemini-2.5-flash',
+            model='gemini-3.6-flash',
             contents=prompt
         )
 
