@@ -19,7 +19,7 @@ from googleapiclient.discovery import build
 # 1. CONFIGURATION & SERVICES INITIALIZATION
 # ==========================================
 
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY","AQ.Ab8RN6IMGg-eWjgY7n77bOPOEFLkdrGipG5t6yh8AL6oNhxuNQ")
 gemini_client = genai.Client(api_key=GEMINI_API_KEY)
 
 def build_user_tasks_service(authorization: Optional[str]):
