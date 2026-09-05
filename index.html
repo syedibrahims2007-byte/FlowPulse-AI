@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>FlowPulse AI Dashboard</title>
+  
+  <!-- Load Google Identity Services SDK -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  
+  <!-- Load Mermaid.js for visual graph rendering -->
+  <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+  <script>mermaid.initialize({ startOnLoad: false, theme: 'neutral' });</script>
+  
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: #f3f4f6;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 40px 20px;
+      box-sizing: border-box;
+    }
+    .card {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+      width: 580px;
+    }
+    h2 { margin-top: 0; color: #111827; }
+    
+    .header-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .status {
+      display: flex;
+      align-items: center;
+      font-size: 14px;
+      color: #10b981;
+    }
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      background-color: #10b981;
+      border-radius: 50%;
+      margin-right: 8px;
+    }
+
+    /* Auth Banner */
+    .auth-banner {
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+    }
+    .auth-btn {
+      background: #4285f4;
+      color: white;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 13px;
+    }
+    .auth-btn:hover { background: #357ae8; }
+    
+    /* Navigation Tabs */
+    .tab-container {
+      display: flex;
+      border-bottom: 2px solid #e2e8f0;
+      margin-bottom: 20px;
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 10px;
+      background: none;
+      border: none;
+      border-bottom: 3px solid transparent;
+      font-weight: bold;
+      color: #64748b;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .tab-btn.active {
+      color: #0066ff;
+      border-bottom-color: #0066ff;
+    }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    input[type="file"] { margin-bottom: 15px; width: 100%; }
+    #image-preview {
+      width: 100%;
+      max-height: 180px;
+      object-fit: cover;
+      border-radius: 8px;
+      display: none;
+      margin-bottom: 15px;
+    }
+
+    /* Primary Action Buttons */
+    button.primary-btn {
+      width: 100%;
+      padding: 12px;
+      background-color: #0066ff;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-weight: bold;
+      font-size: 15px;
+      cursor: pointer;
+      transition: background 0.2s;
+      margin-top: 5px;
+    }
+    button.primary-btn:hover { background-color: #0052cc; }
+    button.primary-btn:disabled { background-color: #9ca3af; cursor: not-allowed; }
+
+    /* Secondary Button */
+    .sec-btn {
+      background: #e2e8f0;
+      color: #334155;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .sec-btn:hover { background: #cbd5e1; }
+
+    /* Audio Recording UI */
+    .recorder-box {
+      border: 2px dashed #cbd5e1;
+      padding: 20px;
+      border-radius: 8px;
+      text-align: center;
+      margin-bottom: 15px;
+      background: #f8fafc;
+    }
+    .rec-btn {
+      background-color: #ef4444;
+      color: white;
+      border: none;
+      padding: 10px 18px;
+      border-radius: 20px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .rec-btn.recording {
+      animation: pulse 1.2s infinite;
+      background-color: #dc2626;
+    }
+    @keyframes pulse {
+      0% { opacity: 1; }
+      50% { opacity: 0.5; }
+      100% { opacity: 1; }
+    }
+    audio { width: 100%; margin-top: 15px; }
+
+    /* Task List Formatting */
+    #output { margin-top: 20px; font-size: 14px; color: #374151; }
+    ul.task-list { list-style: none; padding: 0; margin-top: 15px; }
+    ul.task-list li {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .exec-btn {
+      background: #10b981;
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .exec-btn:hover { background: #059669; }
+
+    #mermaid-container {
+      margin-top: 20px;
+      background: #f8fafc;
+      padding: 15px;
+      border-radius: 8px;
+      border: 1px solid #e2e8f0;
+      text-align: center;
+      overflow-x: auto;
+    }
+
+    /* Side Drawer Styling */
+    .drawer {
+      position: fixed;
+      top: 0;
+      right: -450px;
+      width: 420px;
+      height: 100%;
+      background: white;
+      box-shadow: -5px 0 25px rgba(0,0,0,0.15);
+      transition: right 0.3s ease;
+      padding: 25px;
+      box-sizing: border-box;
+      overflow-y: auto;
+      z-index: 999;
+    }
+    .drawer.open { right: 0; }
+    .close-btn {
+      background: #ef4444;
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      float: right;
+    }
+    #guide-content {
+      margin-top: 15px;
+      font-size: 14px;
+      line-height: 1.6;
+      color: #334155;
+      white-space: pre-line;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <div class="header-bar">
+      <h2>FlowPulse AI Dashboard</h2>
+      <div class="status">
+        <div class="status-dot"></div>
+        Engine Online
+      </div>
+    </div>
+
+    <!-- Google OAuth Authentication Banner -->
+    <div class="auth-banner">
+      <div id="auth-status-text">
+        🔒 <strong>Google Tasks Unlinked</strong>
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <button id="nudgeBtn" class="sec-btn" onclick="checkNudges()" style="display:none;">🔔 Check Nudges</button>
+        <button id="authBtn" class="auth-btn" onclick="requestGoogleAuth()">Connect Google Tasks</button>
+      </div>
+    </div>
+
+    <!-- Interface Mode Tabs -->
+    <div class="tab-container">
+      <button class="tab-btn active" onclick="switchTab('image-tab')">📷 Image Strategy</button>
+      <button class="tab-btn" onclick="switchTab('audio-tab')">🎙️ Voice Memo Synthesizer</button>
+    </div>
+
+    <!-- IMAGE UPLOAD TAB -->
+    <div id="image-tab" class="tab-content active">
+      <input type="file" id="imageInput" accept="image/*" onchange="previewImage(event)">
+      <img id="image-preview" alt="Goal Image Preview">
+      <button id="imageSyncBtn" class="primary-btn" onclick="uploadImageAndSync()">Extract & Sync Tasks from Image</button>
+    </div>
+
+    <!-- AUDIO RECORD / UPLOAD TAB -->
+    <div id="audio-tab" class="tab-content">
+      <div class="recorder-box">
+        <button id="recordBtn" class="rec-btn" onclick="toggleRecording()">🎙️ Start Recording</button>
+        <p id="rec-status" style="font-size: 12px; color: #64748b; margin-top: 8px;">Click to record a goal voice memo</p>
+        <audio id="audioPlayback" controls style="display:none;"></audio>
+      </div>
+
+      <div style="text-align: center; margin: 10px 0; color: #94a3b8; font-size: 12px;">— OR UPLOAD AN AUDIO FILE —</div>
+      <input type="file" id="audioFileInput" accept="audio/*">
+
+      <button id="audioSyncBtn" class="primary-btn" onclick="uploadAudioAndSync()">Synthesize Voice Memo & Sync Tasks</button>
+    </div>
+
+    <div id="output"></div>
+    <div id="mermaid-container"></div>
+  </div>
+
+  <!-- AI Task Execution Assistant Side-Drawer -->
+  <div id="drawer" class="drawer">
+    <button class="close-btn" onclick="closeDrawer()">✕ Close</button>
+    <h3 id="drawer-title" style="margin-top: 10px; color: #0066ff;">Task Execution Assistant</h3>
+    <hr style="border: 0; border-top: 1px solid #e2e8f0; margin-bottom: 15px;">
+
+    <!-- Quick Action Artifact Buttons -->
+    <div style="display: flex; gap: 8px; margin-bottom: 15px;">
+      <button class="exec-btn" style="background:#2563eb; flex:1;" onclick="generateArtifact('email')">📧 Draft Email</button>
+      <button class="exec-btn" style="background:#0d9488; flex:1;" onclick="generateArtifact('code')">💻 Generate Code</button>
+      <button class="exec-btn" style="background:#9333ea; flex:1;" onclick="generateArtifact('doc')">📄 Doc Outline</button>
+    </div>
+
+    <!-- Artifact Output Area with Copy Button -->
+    <div id="artifact-box" style="display:none; background:#0f172a; color:#f8fafc; padding:12px; border-radius:8px; font-size:13px; margin-bottom:15px; position:relative;">
+      <button onclick="copyArtifact()" style="position:absolute; top:8px; right:8px; background:#334155; color:white; border:none; padding:4px 8px; border-radius:4px; font-size:11px; cursor:pointer;">📋 Copy</button>
+      <pre id="artifact-content" style="white-space:pre-wrap; margin:0; font-family:monospace; font-size:12px; margin-top:15px;"></pre>
+    </div>
+
+    <div id="guide-content">Select a task to generate an AI execution plan...</div>
+  </div>
+
+  <script>
+    const CLIENT_ID = "981552568161-6ep4rl9ctqimj2l8p5621n520dn85mh9.apps.googleusercontent.com";
+    let userAccessToken = null;
+    let tokenClient = null;
+    let currentTaskTitle = "";
+
+    // Initialize Google OAuth Token Client
+    window.onload = function() {
+      if (window.google) {
+        tokenClient = google.accounts.oauth2.initTokenClient({
+          client_id: CLIENT_ID,
+          scope: 'https://www.googleapis.com/auth/tasks',
+          callback: (response) => {
+            if (response.access_token) {
+              userAccessToken = response.access_token;
+              document.getElementById('auth-status-text').innerHTML = '✅ <strong style="color:#10b981;">Google Tasks Connected</strong>';
+              document.getElementById('authBtn').innerText = 'Reconnect';
+              document.getElementById('nudgeBtn').style.display = 'inline-block';
+            }
+          },
+        });
+      }
+    };
+
+    function requestGoogleAuth() {
+      if (tokenClient) {
+        tokenClient.requestAccessToken();
+      } else {
+        alert("Google OAuth Client loading... Please try again in a moment.");
+      }
+    }
+
+    // Trigger proactive nudge check endpoint
+    async function checkNudges() {
+      if (!userAccessToken) return alert("Please connect your Google Tasks account first!");
+
+      try {
+        const res = await fetch("http://localhost:8000/trigger-nudge-check", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${userAccessToken}`
+          }
+        });
+        const data = await res.json();
+        alert(`Nudge check complete! Found ${data.overdue_count} overdue task(s).`);
+      } catch (err) {
+        alert("Failed to run nudge check: " + err.message);
+      }
+    }
+
+    // Tab Switcher logic
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+      
+      event.target.classList.add('active');
+      document.getElementById(tabId).classList.add('active');
+    }
+
+    // Image Preview Handler
+    function previewImage(event) {
+      const file = event.target.files[0];
+      const preview = document.getElementById('image-preview');
+      if (file) {
+        preview.src = URL.createObjectURL(file);
+        preview.style.display = 'block';
+      }
+    }
+
+    // Audio Recorder State Variables
+    let mediaRecorder;
+    let audioChunks = [];
+    let recordedAudioBlob = null;
+
+    async function toggleRecording() {
+      const recBtn = document.getElementById('recordBtn');
+      const recStatus = document.getElementById('rec-status');
+      const audioPlayback = document.getElementById('audioPlayback');
+
+      if (mediaRecorder && mediaRecorder.state === "recording") {
+        mediaRecorder.stop();
+        recBtn.classList.remove('recording');
+        recBtn.innerText = "🎙️ Record Again";
+        recStatus.innerText = "Recording saved! Ready to process.";
+      } else {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          mediaRecorder = new MediaRecorder(stream);
+          audioChunks = [];
+
+          mediaRecorder.ondataavailable = (event) => audioChunks.push(event.data);
+          mediaRecorder.onstop = () => {
+            recordedAudioBlob = new Blob(audioChunks, { type: 'audio/mp3' });
+            audioPlayback.src = URL.createObjectURL(recordedAudioBlob);
+            audioPlayback.style.display = 'block';
+          };
+
+          mediaRecorder.start();
+          recBtn.classList.add('recording');
+          recBtn.innerText = "⏹️ Stop Recording";
+          recStatus.innerText = "Listening... Speak your goal clearly.";
+        } catch (err) {
+          alert("Microphone permission denied or unsupported browser.");
+        }
+      }
+    }
+
+    // 1. Process Image Request
+    async function uploadImageAndSync() {
+      if (!userAccessToken) return alert("Please connect your Google Tasks account before submitting!");
+      const fileInput = document.getElementById('imageInput');
+      if (!fileInput.files[0]) return alert("Please select an image first!");
+
+      const formData = new FormData();
+      formData.append("file", fileInput.files[0]);
+
+      await processApiCall("http://localhost:8000/decompose-goal-image", formData, "imageSyncBtn", "Analyzing image with Gemini...");
+    }
+
+    // 2. Process Audio Request (Recorded or Uploaded File)
+    async function uploadAudioAndSync() {
+      if (!userAccessToken) return alert("Please connect your Google Tasks account before submitting!");
+      const audioFileInput = document.getElementById('audioFileInput');
+      const formData = new FormData();
+
+      if (recordedAudioBlob) {
+        formData.append("file", recordedAudioBlob, "voice_memo.mp3");
+      } else if (audioFileInput.files[0]) {
+        formData.append("file", audioFileInput.files[0]);
+      } else {
+        return alert("Please record a voice memo or upload an audio file first!");
+      }
+
+      await processApiCall("http://localhost:8000/decompose-goal-audio", formData, "audioSyncBtn", "Listening & synthesizing audio with Gemini...");
+    }
+
+    // Common Processing and Rendering Handler
+    async function processApiCall(url, formData, btnId, loadingText) {
+      const btn = document.getElementById(btnId);
+      const output = document.getElementById('output');
+      const container = document.getElementById('mermaid-container');
+
+      const originalBtnText = btn.innerText;
+      btn.disabled = true;
+      btn.innerText = loadingText;
+      output.innerHTML = "<em>Analyzing context & syncing tasks to Google Tasks...</em>";
+      container.innerHTML = "";
+
+      try {
+        const response = await fetch(url, { 
+          method: "POST", 
+          headers: {
+            "Authorization": `Bearer ${userAccessToken}`
+          },
+          body: formData 
+        });
+        const data = await response.json();
+
+        if (response.ok) {
+          renderTasksAndGraph(data);
+        } else {
+          output.innerHTML = `<span style="color:red">❌ Error: ${data.detail}</span>`;
+        }
+      } catch (err) {
+        output.innerHTML = `<span style="color:red">❌ Failed to reach backend: ${err.message}</span>`;
+      } finally {
+        btn.disabled = false;
+        btn.innerText = originalBtnText;
+      }
+    }
+
+    function renderTasksAndGraph(data) {
+      const output = document.getElementById('output');
+      const container = document.getElementById('mermaid-container');
+
+      let html = `<strong>🎯 ${data.goal_title || 'Goal Strategy'}</strong>`;
+      html += `<p style="color:#10b981; margin: 4px 0;">✅ Created ${data.tasks_created_count} tasks in Google Tasks:</p>`;
+      html += `<ul class="task-list">`;
+      
+      data.created_tasks.forEach(t => {
+        html += `<li>
+          <span>${t.title}</span>
+          <button class="exec-btn" onclick="openExecutionGuide('${escape(t.title)}')">⚡ How to Exec</button>
+        </li>`;
+      });
+      html += "</ul>";
+      output.innerHTML = html;
+
+      if (data.mermaid_graph) {
+        container.innerHTML = `<div class="mermaid">${data.mermaid_graph}</div>`;
+        mermaid.run();
+      }
+    }
+
+    // 3. Side Drawer AI Execution Guide Request
+    async function openExecutionGuide(encodedTitle) {
+      currentTaskTitle = unescape(encodedTitle);
+      const drawer = document.getElementById('drawer');
+      const titleEl = document.getElementById('drawer-title');
+      const contentEl = document.getElementById('guide-content');
+      const artifactBox = document.getElementById('artifact-box');
+
+      drawer.classList.add('open');
+      titleEl.innerText = currentTaskTitle;
+      contentEl.innerHTML = "<em>Asking Gemini for step-by-step execution coaching...</em>";
+      artifactBox.style.display = "none"; // Hide artifact box on new task open
+
+      try {
+        const res = await fetch("http://localhost:8000/generate-task-guide", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ task_title: currentTaskTitle })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          contentEl.innerText = data.guide;
+        } else {
+          contentEl.innerText = "Failed to generate execution guide.";
+        }
+      } catch (err) {
+        contentEl.innerText = "Error connecting to AI execution service.";
+      }
+    }
+
+    // 4. Generate Artifact Request (Email, Code, Doc)
+    async function generateArtifact(type) {
+      const artifactBox = document.getElementById('artifact-box');
+      const artifactContent = document.getElementById('artifact-content');
+
+      artifactBox.style.display = "block";
+      artifactContent.innerText = `Generating ${type} draft with Gemini...`;
+
+      try {
+        const res = await fetch("http://localhost:8000/generate-artifact", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ task_title: currentTaskTitle, artifact_type: type })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          artifactContent.innerText = data.content;
+        } else {
+          artifactContent.innerText = "Failed to generate artifact.";
+        }
+      } catch (err) {
+        artifactContent.innerText = "Error requesting artifact generation.";
+      }
+    }
+
+    function copyArtifact() {
+      const text = document.getElementById('artifact-content').innerText;
+      navigator.clipboard.writeText(text);
+      alert("📋 Artifact copied to clipboard!");
+    }
+
+    function closeDrawer() {
+      document.getElementById('drawer').classList.remove('open');
+    }
+  </script>
+
+</body>
+</html>
