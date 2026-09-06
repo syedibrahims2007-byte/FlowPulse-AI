@@ -21,8 +21,9 @@ from googleapiclient.discovery import build
 
 def get_gemini_client() -> genai.Client:
     """
-    Instantiates an isolated Gemini client explicitly configured to use ONLY 
-    the GEMINI_API_KEY and ignore request-level OAuth headers.
+    Instantiates an isolated Gemini client.
+    Configures client transport explicitly to prevent capturing user OAuth 
+    Bearer headers from FastAPI request contexts.
     """
     api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
@@ -33,10 +34,14 @@ def get_gemini_client() -> genai.Client:
     
     clean_key = api_key.strip().strip("'").strip('"')
     
+    # Enforce API Key mode explicitly via HttpOptions
     return genai.Client(
         api_key=clean_key,
         http_options=types.HttpOptions(
-            headers={"x-goog-api-key": clean_key}
+            headers={
+                "x-goog-api-key": clean_key,
+                "Authorization": ""  # Explicitly clear any inherited OAuth Bearer header
+            }
         )
     )
 
