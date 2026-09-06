@@ -202,6 +202,49 @@ async def privacy_policy():
     </html>
     """
 
+@app.get("/terms", response_class=HTMLResponse)
+async def terms_of_service():
+    """
+    Serves the required public Terms of Service page to pass Google Auth Branding Verification.
+    """
+    return """
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Terms of Service - FlowPulse AI</title>
+        <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; line-height: 1.6; color: #334155; }
+            h1, h2 { color: #0f172a; }
+            a { color: #0066ff; }
+        </style>
+    </head>
+    <body>
+        <h1>Terms of Service for FlowPulse AI</h1>
+        <p><em>Last updated: September 2026</em></p>
+        
+        <h2>1. Acceptance of Terms</h2>
+        <p>By accessing or using FlowPulse AI, you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use the application.</p>
+        
+        <h2>2. Description of Service</h2>
+        <p>FlowPulse AI provides AI-assisted goal decomposition, workflow visualization, and task scheduling tools integrated with Google Tasks.</p>
+        
+        <h2>3. User Responsibilities</h2>
+        <p>You are responsible for maintaining the security of your Google account and credentials. You agree not to use the service for any unlawful activities or to upload harmful content.</p>
+        
+        <h2>4. Disclaimer of Warranties</h2>
+        <p>FlowPulse AI is provided "as is" and "as available" without warranties of any kind, whether express or implied. We do not guarantee uninterrupted access or error-free performance.</p>
+        
+        <h2>5. Limitation of Liability</h2>
+        <p>In no event shall FlowPulse AI or its developers be liable for any direct, indirect, incidental, or consequential damages resulting from the use or inability to use the service.</p>
+        
+        <h2>6. Contact Us</h2>
+        <p>If you have any questions regarding these Terms, contact us at <a href="mailto:syedibrahims2007@gmail.com">syedibrahims2007@gmail.com</a>.</p>
+    </body>
+    </html>
+    """
+
 @app.get("/api/health")
 def health_check():
     return {"status": "online", "app": "FlowPulse AI Engine"}
