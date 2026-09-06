@@ -21,8 +21,8 @@ from googleapiclient.discovery import build
 
 def get_gemini_client() -> genai.Client:
     """
-    Instantiates an isolated Gemini client bound exclusively to the backend API key.
-    This prevents the SDK from capturing user OAuth tokens from the request context.
+    Instantiates an isolated Gemini client explicitly configured to use ONLY 
+    the GEMINI_API_KEY and ignore request-level OAuth headers.
     """
     api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
@@ -30,7 +30,15 @@ def get_gemini_client() -> genai.Client:
             status_code=500, 
             detail="GEMINI_API_KEY environment variable is not configured on the server."
         )
-    return genai.Client(api_key=api_key)
+    
+    clean_key = api_key.strip().strip("'").strip('"')
+    
+    return genai.Client(
+        api_key=clean_key,
+        http_options=types.HttpOptions(
+            headers={"x-goog-api-key": clean_key}
+        )
+    )
 
 def build_user_tasks_service(authorization: Optional[str]):
     """
