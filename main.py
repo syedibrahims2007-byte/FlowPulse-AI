@@ -5,10 +5,11 @@ from datetime import datetime, timezone
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, BackgroundTasks, File, UploadFile, Form, Header
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from apscheduler.schedulers.background import BackgroundScheduler
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
 from google import genai
 from google.genai import types
@@ -43,6 +44,23 @@ def get_gemini_client() -> genai.Client:
                 "Authorization": ""  # Explicitly clear any inherited OAuth Bearer header
             }
         )
+    )
+
+# Exponential backoff handler for Gemini 503 high-demand errors
+@retry(
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=1, min=2, max=10),
+    reraise=True
+)
+def call_gemini_with_retry(ai_client: genai.Client, model: str, contents, config=None):
+    """
+    Wraps generate_content in an exponential backoff retry loop to automatically
+    recover from temporary 503 UNAVAILABLE service spikes.
+    """
+    return ai_client.models.generate_content(
+        model=model,
+        contents=contents,
+        config=config
     )
 
 def build_user_tasks_service(authorization: Optional[str]):
@@ -145,6 +163,45 @@ class ArtifactRequest(BaseModel):
 def read_root():
     return FileResponse("index.html")
 
+@app.get("/privacy", response_class=HTMLResponse)
+async def privacy_policy():
+    """
+    Serves the required public Privacy Policy page to pass Google Auth Branding Verification.
+    """
+    return """
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Privacy Policy - FlowPulse AI</title>
+        <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; line-height: 1.6; color: #334155; }
+            h1, h2 { color: #0f172a; }
+            a { color: #0066ff; }
+        </style>
+    </head>
+    <body>
+        <h1>Privacy Policy for FlowPulse AI</h1>
+        <p><em>Last updated: September 2026</em></p>
+        
+        <h2>1. Overview</h2>
+        <p>FlowPulse AI helps users automate goal breakdown, task scheduling, and workflow strategy visualization. We take user privacy and data authorization seriously.</p>
+        
+        <h2>2. Information We Collect and Scope Usage</h2>
+        <p>Our application requests access to Google Tasks API scopes exclusively to read and insert generated sub-tasks into your default Google Tasks list at your direct command.</p>
+        
+        <h2>3. How We Process Data</h2>
+        <p>Task content and prompt details are sent securely to Google's Gemini models for structural decomposition. We do not permanently store your personal tasks, audio recordings, or credentials on external databases.</p>
+        
+        <h2>4. Data Retention & Security</h2>
+        <p>OAuth tokens remain in client-side memory and are sent securely via TLS headers. Tokens are never logged or stored server-side.</p>
+
+        <h2>5. Contact Information</h2>
+        <p>If you have questions regarding this policy, contact the developer at <a href="mailto:syedibrahims2007@gmail.com">syedibrahims2007@gmail.com</a>.</p>
+    </body>
+    </html>
+    """
+
 @app.get("/api/health")
 def health_check():
     return {"status": "online", "app": "FlowPulse AI Engine"}
@@ -168,7 +225,8 @@ async def decompose_goal(
         - "notes": Brief execution step or detail
         """
 
-        response = ai_client.models.generate_content(
+        response = call_gemini_with_retry(
+            ai_client=ai_client,
             model='gemini-3.6-flash',
             contents=prompt,
             config=types.GenerateContentConfig(
@@ -236,7 +294,8 @@ async def decompose_goal_image(
         }
         """
 
-        response = ai_client.models.generate_content(
+        response = call_gemini_with_retry(
+            ai_client=ai_client,
             model='gemini-3.6-flash',
             contents=[
                 types.Part.from_bytes(
@@ -311,7 +370,8 @@ async def decompose_goal_audio(
         }
         """
 
-        response = ai_client.models.generate_content(
+        response = call_gemini_with_retry(
+            ai_client=ai_client,
             model='gemini-3.6-flash',
             contents=[
                 types.Part.from_bytes(
@@ -366,7 +426,8 @@ async def generate_task_guide(payload: TaskGuideRequest):
         Structure your response clearly using bullet points, key tools/links to use, and any exact code/text templates if applicable. Keep it actionable and under 250 words.
         """
 
-        response = ai_client.models.generate_content(
+        response = call_gemini_with_retry(
+            ai_client=ai_client,
             model='gemini-3.6-flash',
             contents=prompt
         )
@@ -390,7 +451,8 @@ async def generate_artifact(payload: ArtifactRequest):
         else:
             prompt = f"Create a comprehensive document outline, brief, or specification for this task: '{payload.task_title}'. Use bullet points and clear sections."
 
-        response = ai_client.models.generate_content(
+        response = call_gemini_with_retry(
+            ai_client=ai_client,
             model='gemini-3.6-flash',
             contents=prompt
         )
