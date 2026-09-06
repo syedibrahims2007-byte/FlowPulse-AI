@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, BackgroundTasks, File, UploadFile, Form, Header
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -163,6 +163,34 @@ class ArtifactRequest(BaseModel):
 def read_root():
     return FileResponse("index.html")
 
+@app.get("/sitemap.xml", response_class=Response)
+def get_sitemap():
+    """
+    Serves the dynamic sitemap XML required by Google Search Console.
+    """
+    xml_content = """<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://flowpulse-ai-m0v4.onrender.com/</loc>
+    <lastmod>2026-09-06</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://flowpulse-ai-m0v4.onrender.com/privacy</loc>
+    <lastmod>2026-09-06</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://flowpulse-ai-m0v4.onrender.com/terms</loc>
+    <lastmod>2026-09-06</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+</urlset>"""
+    return Response(content=xml_content, media_type="application/xml")
+
 @app.get("/privacy", response_class=HTMLResponse)
 async def privacy_policy():
     """
@@ -237,7 +265,7 @@ async def terms_of_service():
         <p>FlowPulse AI is provided "as is" and "as available" without warranties of any kind, whether express or implied. We do not guarantee uninterrupted access or error-free performance.</p>
         
         <h2>5. Limitation of Liability</h2>
-        <p>In no event shall FlowPulse AI or its developers be liable for any direct, indirect, incidental, or consequential damages resulting from the use or inability to use the service.</p>
+        <p>In no event shall FlowPulse AI or its developers be liable for any direct indirect, incidental, or consequential damages resulting from the use or inability to use the service.</p>
         
         <h2>6. Contact Us</h2>
         <p>If you have any questions regarding these Terms, contact us at <a href="mailto:syedibrahims2007@gmail.com">syedibrahims2007@gmail.com</a>.</p>
