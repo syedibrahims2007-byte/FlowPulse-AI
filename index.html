@@ -419,6 +419,7 @@
 
       const formData = new FormData();
       formData.append("file", fileInput.files[0]);
+      formData.append("tasklist_id", "@default");
 
       await processApiCall("/decompose-goal-image", formData, "imageSyncBtn", "Analyzing image with Gemini...");
     }
@@ -435,6 +436,7 @@
       } else {
         return alert("Please record a voice memo or upload an audio file first!");
       }
+      formData.append("tasklist_id", "@default");
 
       await processApiCall("/decompose-goal-audio", formData, "audioSyncBtn", "Listening & synthesizing audio with Gemini...");
     }
@@ -459,7 +461,7 @@
         const data = await response.json();
 
         if (response.ok) {
-          renderTasksAndGraph(data);
+          await renderTasksAndGraph(data);
         } else {
           output.innerHTML = `<span style="color:red">❌ Error: ${data.detail || 'Failed to process'}</span>`;
         }
@@ -471,7 +473,7 @@
       }
     }
 
-    function renderTasksAndGraph(data) {
+    async function renderTasksAndGraph(data) {
       const output = document.getElementById('output');
       const container = document.getElementById('mermaid-container');
 
@@ -483,7 +485,7 @@
         data.created_tasks.forEach(t => {
           html += `<li>
             <span>${t.title}</span>
-            <button type="button" class="exec-btn" onclick="openExecutionGuide('${escape(t.title)}')">⚡ How to Exec</button>
+            <button type="button" class="exec-btn" onclick="openExecutionGuide('${encodeURIComponent(t.title)}')">⚡ How to Exec</button>
           </li>`;
         });
       }
@@ -491,13 +493,13 @@
       output.innerHTML = html;
 
       if (data.mermaid_graph) {
-        container.innerHTML = `<div class="mermaid">${data.mermaid_graph}</div>`;
-        mermaid.run();
+        container.innerHTML = `<pre class="mermaid">${data.mermaid_graph}</pre>`;
+        await mermaid.run();
       }
     }
 
     async function openExecutionGuide(encodedTitle) {
-      currentTaskTitle = unescape(encodedTitle);
+      currentTaskTitle = decodeURIComponent(encodedTitle);
       const drawer = document.getElementById('drawer');
       const titleEl = document.getElementById('drawer-title');
       const contentEl = document.getElementById('guide-content');
