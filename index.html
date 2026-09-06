@@ -2,6 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Replace the content string below with your exact tag from Google Search Console -->
+  <meta name="google-site-verification" content="YOUR_SEARCH_CONSOLE_VERIFICATION_TOKEN_HERE" />
   <title>FlowPulse AI Dashboard</title>
   
   <!-- Google Identity Services SDK -->
@@ -16,6 +19,7 @@
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       background-color: #f3f4f6;
       display: flex;
+      flex-direction: column;
       justify-content: center;
       align-items: center;
       min-height: 100vh;
@@ -29,6 +33,7 @@
       border-radius: 12px;
       box-shadow: 0 4px 20px rgba(0,0,0,0.08);
       width: 580px;
+      max-width: 100%;
     }
     h2 { margin-top: 0; color: #111827; }
     
@@ -91,7 +96,7 @@
       font-weight: bold;
       color: #64748b;
       cursor: pointer;
-      font-size: 14px;
+      font-size: 13px;
     }
     .tab-btn.active {
       color: #0066ff;
@@ -101,6 +106,15 @@
     .tab-content { display: none; }
     .tab-content.active { display: block; }
 
+    input[type="text"] {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      box-sizing: border-box;
+      font-size: 14px;
+    }
     input[type="file"] { margin-bottom: 15px; width: 100%; }
     #image-preview {
       width: 100%;
@@ -237,6 +251,22 @@
       color: #334155;
       white-space: pre-line;
     }
+
+    /* Footer Styling */
+    footer {
+      margin-top: 25px;
+      text-align: center;
+      font-size: 13px;
+      color: #64748b;
+    }
+    footer a {
+      color: #0066ff;
+      text-decoration: none;
+      font-weight: bold;
+    }
+    footer a:hover {
+      text-decoration: underline;
+    }
   </style>
 </head>
 <body>
@@ -263,12 +293,19 @@
 
     <!-- Interface Mode Tabs -->
     <div class="tab-container">
-      <button class="tab-btn active" onclick="switchTab('image-tab', event)">📷 Image Strategy</button>
-      <button class="tab-btn" onclick="switchTab('audio-tab', event)">🎙️ Voice Memo Synthesizer</button>
+      <button class="tab-btn active" onclick="switchTab('text-tab', event)">✍️ Text Goal</button>
+      <button class="tab-btn" onclick="switchTab('image-tab', event)">📷 Image Strategy</button>
+      <button class="tab-btn" onclick="switchTab('audio-tab', event)">🎙️ Voice Synthesizer</button>
+    </div>
+
+    <!-- TEXT GOAL TAB -->
+    <div id="text-tab" class="tab-content active">
+      <input type="text" id="goalInput" placeholder="e.g., Launch a SaaS product on Product Hunt in 30 days">
+      <button id="textSyncBtn" type="button" class="primary-btn" onclick="submitTextGoal()">Decompose & Sync Tasks</button>
     </div>
 
     <!-- IMAGE UPLOAD TAB -->
-    <div id="image-tab" class="tab-content active">
+    <div id="image-tab" class="tab-content">
       <input type="file" id="imageInput" accept="image/*" onchange="previewImage(event)">
       <img id="image-preview" alt="Goal Image Preview">
       <button id="imageSyncBtn" type="button" class="primary-btn" onclick="uploadImageAndSync()">Extract & Sync Tasks from Image</button>
@@ -311,6 +348,12 @@
 
     <div id="guide-content">Select a task to generate an AI execution plan...</div>
   </div>
+
+  <!-- Footer required for Google Verification -->
+  <footer>
+    <a href="/privacy" target="_blank">Privacy Policy</a> | 
+    <span>FlowPulse AI © 2026</span>
+  </footer>
 
   <script>
     const CLIENT_ID = "981552568161-6ep4rl9ctqimj2l8p5621n520dn85mh9.apps.googleusercontent.com";
@@ -412,6 +455,44 @@
       }
     }
 
+    async function submitTextGoal() {
+      if (!userAccessToken) return alert("Please connect your Google Tasks account before submitting!");
+      const goal = document.getElementById('goalInput').value.trim();
+      if (!goal) return alert("Please enter a goal description!");
+
+      const btn = document.getElementById('textSyncBtn');
+      const output = document.getElementById('output');
+      const container = document.getElementById('mermaid-container');
+
+      btn.disabled = true;
+      btn.innerText = "Decomposing goal with Gemini...";
+      output.innerHTML = "<em>Analyzing context & syncing tasks to Google Tasks...</em>";
+      container.innerHTML = "";
+
+      try {
+        const response = await fetch("/decompose-goal", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${userAccessToken}`
+          },
+          body: JSON.stringify({ goal: goal, tasklist_id: "@default" })
+        });
+        const data = await response.json();
+
+        if (response.ok) {
+          await renderTasksAndGraph(data);
+        } else {
+          output.innerHTML = `<span style="color:red">❌ Error: ${data.detail || 'Failed to process'}</span>`;
+        }
+      } catch (err) {
+        output.innerHTML = `<span style="color:red">❌ Failed to reach backend: ${err.message}</span>`;
+      } finally {
+        btn.disabled = false;
+        btn.innerText = "Decompose & Sync Tasks";
+      }
+    }
+
     async function uploadImageAndSync() {
       if (!userAccessToken) return alert("Please connect your Google Tasks account before submitting!");
       const fileInput = document.getElementById('imageInput');
@@ -477,7 +558,7 @@
       const output = document.getElementById('output');
       const container = document.getElementById('mermaid-container');
 
-      let html = `<strong>🎯 ${data.goal_title || 'Goal Strategy'}</strong>`;
+      let html = `<strong>🎯 ${data.goal_title || data.original_goal || 'Goal Strategy'}</strong>`;
       html += `<p style="color:#10b981; margin: 4px 0;">✅ Created ${data.tasks_created_count} tasks in Google Tasks:</p>`;
       html += `<ul class="task-list">`;
       
